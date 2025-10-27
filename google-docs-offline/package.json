@@ -1,0 +1,15 @@
+{
+  "name": "google-docs-offline",
+  "version": "1.0.0",
+  "description": "Google Docs Offline Service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
